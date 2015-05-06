@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using CsSandbox.Models;
 using CsSandboxApi;
 using CsSandboxRunnerApi;
@@ -80,9 +81,12 @@ namespace CsSandbox.DataContext
 			return submission;
 		}
 
-		public List<SubmissionDetails> GetUnhandled(int count)
+		public List<SubmissionDetails> GetUnhandled(int count, CancellationToken token)
 		{
 			var submissions = new List<string>();
+			while (!token.IsCancellationRequested && Unhandled.IsEmpty)
+				Thread.Sleep(100);
+
 			for (var i = 0; i < count; ++i)
 			{
 				string submission;

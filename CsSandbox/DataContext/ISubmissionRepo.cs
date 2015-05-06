@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using CsSandbox.Models;
 using CsSandboxApi;
 using CsSandboxRunnerApi;
@@ -12,7 +13,7 @@ namespace CsSandbox.DataContext
 		IEnumerable<SubmissionDetails> GetAllSubmissions(string userId, int max, int skip);
 		void SaveResults(RunningResults result);
 		SubmissionDetails FindUnhandled();
-		List<SubmissionDetails> GetUnhandled(int count);
+		List<SubmissionDetails> GetUnhandled(int count, CancellationToken token);
 		void SaveAllResults(List<RunningResults> results);
 	}
 }

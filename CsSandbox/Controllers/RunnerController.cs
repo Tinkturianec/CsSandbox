@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Web.Http;
 using CsSandbox.DataContext;
 using CsSandbox.Models;
@@ -48,7 +49,7 @@ namespace CsSandbox.Controllers
 	    public List<InternalSubmissionModel> GetSubmissions([FromUri] string token, [FromUri] int count)
 	    {
 			CheckRunner(token);
-		    var submissions = _submissionsRepo.GetUnhandled(count);
+		    var submissions = _submissionsRepo.GetUnhandled(count, new CancellationTokenSource(30000).Token);
 		    return submissions
 			    .Select(details => new InternalSubmissionModel
 			    {
