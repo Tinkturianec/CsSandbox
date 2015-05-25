@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using CsSandboxApi;
 using CsSandboxRunnerApi;
 
@@ -16,21 +16,35 @@ namespace CsSandboxRunner
 
 		static void Main(string[] args)
 		{
-			if (args.Length < 2)
-			{
-				Console.Error.WriteLine("Format: <address> <token> [<threads count>]");
-				return;
-			}
-
 			AppDomain.MonitoringIsEnabled = true;
 
-			var address = args[0];
-			var token = args[1];
+			string address, token;
 			int threadsCount;
-			if (args.Length < 3 || !int.TryParse(args[2], out threadsCount))
-				threadsCount = Environment.ProcessorCount - 1;
-
-			Console.Error.WriteLine("Start with {0} threads", threadsCount);
+			if (args.Length < 2)
+			{
+				try
+				{
+					var file = new FileInfo("config");
+					var stream = file.OpenText();
+					address = stream.ReadLine();
+					token = stream.ReadLine();
+					var threadCountString = stream.ReadLine();
+					if (threadCountString == null || !int.TryParse(threadCountString, out threadsCount))
+						threadsCount = Environment.ProcessorCount - 1;
+					stream.Close();
+				}
+				catch (Exception)
+				{
+					return;
+				}
+			}
+			else
+			{
+				address = args[0];
+				token = args[1];
+				if (args.Length < 3 || !int.TryParse(args[2], out threadsCount))
+					threadsCount = Environment.ProcessorCount - 1;
+			}
 
 			_client = new Client(address, token);
 
@@ -52,7 +66,7 @@ namespace CsSandboxRunner
 				{
 					unhandled = _client.TryGetSubmissions(threadsCount).Result;
 				}
-				catch (TaskCanceledException)
+				catch (AggregateException)
 				{
 					unhandled = new List<InternalSubmissionModel>();
 				}
@@ -65,8 +79,6 @@ namespace CsSandboxRunner
 		{	
 			foreach (var submission in Unhandled.GetConsumingEnumerable())
 			{
-				Console.Out.WriteLine(submission.Id + " start");
-				Console.Out.Flush();
 				RunningResults result;
 				try
 				{
@@ -82,8 +94,6 @@ namespace CsSandboxRunner
 					};
 				}
 				Results.Enqueue(result);
-				Console.Out.WriteLine(submission.Id + " finish");
-				Console.Out.Flush();
 			}
 		}
 
@@ -99,10 +109,9 @@ namespace CsSandboxRunner
 						results.Add(result);
 					try
 					{
-						Console.Out.WriteLine("send {0} results", results.Count);
 						_client.SendResults(results);
 					}
-					catch (TaskCanceledException)
+					catch (AggregateException)
 					{
 					}
 				}
